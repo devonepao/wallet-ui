@@ -11,10 +11,26 @@ class WalletApp {
     }
     
     async init() {
-        await this.loadCardsData();
-        this.renderCards();
-        this.setupCardEvents();
-        this.setupButtonEvents();
+        try {
+            await this.loadCardsData();
+            this.renderCards();
+            this.setupCardEvents();
+            this.setupButtonEvents();
+        } catch (error) {
+            console.error('Failed to initialize wallet app:', error);
+            // Show error message to user
+            this.showErrorMessage('Failed to load cards. Please refresh the page.');
+        }
+    }
+    
+    // Show error message to user
+    showErrorMessage(message) {
+        const container = this.cardsContainer;
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <p style="font-size: 16px; margin-bottom: 12px;">⚠️ ${message}</p>
+            </div>
+        `;
     }
     
     // Load cards data from JSON
@@ -46,7 +62,7 @@ class WalletApp {
     createCardElement(cardData, index) {
         const cardWrapper = document.createElement('div');
         cardWrapper.className = 'card-wrapper';
-        cardWrapper.setAttribute('data-card', cardData.id);
+        cardWrapper.setAttribute('data-card', String(cardData.id));
         
         const card = document.createElement('div');
         card.className = 'card';
