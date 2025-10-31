@@ -144,21 +144,41 @@ class WalletApp {
     
     // Sanitize CSS value to prevent injection
     sanitizeCSSValue(value) {
-        // Allow only safe CSS values (gradients, colors)
-        const safePattern = /^(linear-gradient|radial-gradient|#[0-9A-Fa-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/;
-        if (safePattern.test(value)) {
+        // More restrictive validation for CSS values
+        // Allow linear-gradient, radial-gradient, and simple color formats
+        const hexPattern = /^#[0-9A-Fa-f]{3,8}$/;
+        const rgbaPattern = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+        const hslaPattern = /^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+        const gradientPattern = /^(linear|radial)-gradient\(.*\)$/;
+        
+        // Validate the value
+        if (hexPattern.test(value) || rgbaPattern.test(value) || hslaPattern.test(value)) {
             return value;
         }
+        
+        // For gradients, ensure they don't contain dangerous patterns
+        if (gradientPattern.test(value) && !value.includes('javascript:') && !value.includes('data:') && !value.includes('url(')) {
+            return value;
+        }
+        
         // Return default gradient if validation fails
         return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
     
     // Sanitize URL to prevent XSS
     sanitizeURL(url) {
-        // Allow only relative URLs and data URIs for safety
-        if (url.startsWith('data:image/') || url.startsWith('/') || url.startsWith('./') || /^[a-zA-Z0-9._-]+\.(svg|png|jpg|jpeg|webp)$/i.test(url)) {
-            return url;
+        // Only allow relative paths and safe image file extensions
+        // Explicitly reject data: URIs as they can contain malicious code
+        const safeFilePattern = /^[a-zA-Z0-9._/-]+\.(svg|png|jpg|jpeg|webp|gif)$/i;
+        const relativePattern = /^\.?\/[a-zA-Z0-9._/-]+\.(svg|png|jpg|jpeg|webp|gif)$/i;
+        
+        if (safeFilePattern.test(url) || relativePattern.test(url)) {
+            // Additional check: ensure no dangerous patterns
+            if (!url.includes('javascript:') && !url.includes('data:') && !url.includes('<')) {
+                return url;
+            }
         }
+        
         // Return empty string if validation fails
         return '';
     }
@@ -196,7 +216,11 @@ class WalletApp {
     
     // Get logo SVG based on card protocol
     getProtocolLogo(protocol) {
-        if (protocol === 'American Express') {
+        // Sanitize protocol value - only allow known protocols
+        const validProtocols = ['American Express', 'Mastercard', 'Visa'];
+        const safeProtocol = validProtocols.includes(protocol) ? protocol : 'Mastercard';
+        
+        if (safeProtocol === 'American Express') {
             return `
                 <svg width="60" height="40" viewBox="0 0 60 40">
                     <rect x="2" y="8" width="56" height="24" rx="2" fill="none" stroke="white" stroke-width="2"/>
