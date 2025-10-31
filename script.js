@@ -37,11 +37,15 @@ class WalletApp {
     async loadCardsData() {
         try {
             const response = await fetch('cards-data.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             this.cardsData = data.cards;
         } catch (error) {
             console.error('Error loading cards data:', error);
             this.cardsData = [];
+            throw error;
         }
     }
     
@@ -67,53 +71,127 @@ class WalletApp {
         const card = document.createElement('div');
         card.className = 'card';
         
-        // Apply background based on type
+        // Apply background based on type with validation
         if (cardData.background.type === 'color') {
-            card.style.background = cardData.background.value;
+            // Sanitize CSS gradient value
+            const bgValue = this.sanitizeCSSValue(cardData.background.value);
+            card.style.background = bgValue;
         } else if (cardData.background.type === 'image') {
-            card.style.backgroundImage = `url(${cardData.background.value})`;
+            // Sanitize image URL
+            const imageUrl = this.sanitizeURL(cardData.background.value);
+            card.style.backgroundImage = `url(${imageUrl})`;
             card.style.backgroundSize = 'cover';
             card.style.backgroundPosition = 'center';
         }
         
-        // Determine logo based on protocol
-        const logo = this.getProtocolLogo(cardData.protocol);
+        // Create card elements using DOM methods for security
+        card.appendChild(this.createChipSVG());
+        card.appendChild(this.createNFCSVG());
         
-        card.innerHTML = `
-            <div class="card-chip">
-                <svg width="40" height="32" viewBox="0 0 40 32">
-                    <rect width="40" height="32" rx="4" fill="#D4AF37"/>
-                    <rect x="8" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
-                    <rect x="16" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
-                    <rect x="24" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
-                    <rect x="8" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
-                    <rect x="24" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
-                </svg>
-            </div>
-            <div class="card-nfc">
-                <svg width="32" height="24" viewBox="0 0 32 24">
-                    <path d="M4 4C4 4 8 8 8 12C8 16 4 20 4 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
-                    <path d="M10 6C10 6 14 9 14 12C14 15 10 18 10 18" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
-                    <path d="M16 8C16 8 19 10 19 12C19 14 16 16 16 16" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
-                </svg>
-            </div>
-            <div class="card-bank">${cardData.bank}</div>
-            <div class="card-number">${cardData.cardNumber}</div>
-            <div class="card-holder">
-                <div class="card-label">Card Holder</div>
-                <div class="card-name">${cardData.holderName}</div>
-            </div>
-            <div class="card-expiry">
-                <div class="card-label">Expires</div>
-                <div class="card-date">${cardData.expiryDate}</div>
-            </div>
-            <div class="card-logo">
-                ${logo}
-            </div>
-        `;
+        // Create bank name element
+        const bankEl = document.createElement('div');
+        bankEl.className = 'card-bank';
+        bankEl.textContent = cardData.bank; // Use textContent for security
+        card.appendChild(bankEl);
+        
+        // Create card number element
+        const numberEl = document.createElement('div');
+        numberEl.className = 'card-number';
+        numberEl.textContent = cardData.cardNumber;
+        card.appendChild(numberEl);
+        
+        // Create card holder section
+        const holderSection = document.createElement('div');
+        holderSection.className = 'card-holder';
+        
+        const holderLabel = document.createElement('div');
+        holderLabel.className = 'card-label';
+        holderLabel.textContent = 'Card Holder';
+        holderSection.appendChild(holderLabel);
+        
+        const holderName = document.createElement('div');
+        holderName.className = 'card-name';
+        holderName.textContent = cardData.holderName;
+        holderSection.appendChild(holderName);
+        
+        card.appendChild(holderSection);
+        
+        // Create expiry section
+        const expirySection = document.createElement('div');
+        expirySection.className = 'card-expiry';
+        
+        const expiryLabel = document.createElement('div');
+        expiryLabel.className = 'card-label';
+        expiryLabel.textContent = 'Expires';
+        expirySection.appendChild(expiryLabel);
+        
+        const expiryDate = document.createElement('div');
+        expiryDate.className = 'card-date';
+        expiryDate.textContent = cardData.expiryDate;
+        expirySection.appendChild(expiryDate);
+        
+        card.appendChild(expirySection);
+        
+        // Create logo element
+        const logoContainer = document.createElement('div');
+        logoContainer.className = 'card-logo';
+        logoContainer.innerHTML = this.getProtocolLogo(cardData.protocol);
+        card.appendChild(logoContainer);
         
         cardWrapper.appendChild(card);
         return cardWrapper;
+    }
+    
+    // Sanitize CSS value to prevent injection
+    sanitizeCSSValue(value) {
+        // Allow only safe CSS values (gradients, colors)
+        const safePattern = /^(linear-gradient|radial-gradient|#[0-9A-Fa-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/;
+        if (safePattern.test(value)) {
+            return value;
+        }
+        // Return default gradient if validation fails
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }
+    
+    // Sanitize URL to prevent XSS
+    sanitizeURL(url) {
+        // Allow only relative URLs and data URIs for safety
+        if (url.startsWith('data:image/') || url.startsWith('/') || url.startsWith('./') || /^[a-zA-Z0-9._-]+\.(svg|png|jpg|jpeg|webp)$/i.test(url)) {
+            return url;
+        }
+        // Return empty string if validation fails
+        return '';
+    }
+    
+    // Create chip SVG element
+    createChipSVG() {
+        const chipDiv = document.createElement('div');
+        chipDiv.className = 'card-chip';
+        chipDiv.innerHTML = `
+            <svg width="40" height="32" viewBox="0 0 40 32">
+                <rect width="40" height="32" rx="4" fill="#D4AF37"/>
+                <rect x="8" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="16" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="24" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="8" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="24" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
+            </svg>
+        `;
+        return chipDiv;
+    }
+    
+    // Create NFC SVG element
+    createNFCSVG() {
+        const nfcDiv = document.createElement('div');
+        nfcDiv.className = 'card-nfc';
+        nfcDiv.innerHTML = `
+            <svg width="32" height="24" viewBox="0 0 32 24">
+                <path d="M4 4C4 4 8 8 8 12C8 16 4 20 4 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+                <path d="M10 6C10 6 14 9 14 12C14 15 10 18 10 18" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+                <path d="M16 8C16 8 19 10 19 12C19 14 16 16 16 16" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+            </svg>
+        `;
+        return nfcDiv;
     }
     
     // Get logo SVG based on card protocol
