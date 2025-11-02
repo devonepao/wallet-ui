@@ -194,42 +194,6 @@ body {
     pointer-events: none;
 }
 
-.card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
-    pointer-events: none;
-}
-
-/* Card Color Themes */
-.card-blue {
-    background: linear-gradient(135deg, #0066CC 0%, #0052A3 100%);
-}
-
-.card-red {
-    background: linear-gradient(135deg, #E31E24 0%, #B71C1C 100%);
-}
-
-.card-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.card-gold {
-    background: linear-gradient(135deg, #D4A574 0%, #B8860B 100%);
-}
-
-.card-dark {
-    background: linear-gradient(135deg, #1A1A1A 0%, #0A0A0A 100%);
-}
-
-.card-silver {
-    background: linear-gradient(135deg, #AFAFAF 0%, #757575 100%);
-}
-
 /* Card Elements - Adjusted for aspect ratio */
 .card-chip,
 .card-nfc,

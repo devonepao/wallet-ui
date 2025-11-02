@@ -4,14 +4,238 @@
 class WalletApp {
     constructor() {
         this.cardsContainer = document.getElementById('cardsContainer');
-        this.cards = document.querySelectorAll('.card-wrapper');
+        this.cards = [];
+        this.cardsData = [];
         
         this.init();
     }
     
-    init() {
-        this.setupCardEvents();
-        this.setupButtonEvents();
+    async init() {
+        try {
+            await this.loadCardsData();
+            this.renderCards();
+            this.setupCardEvents();
+            this.setupButtonEvents();
+        } catch (error) {
+            console.error('Failed to initialize wallet app:', error);
+            // Show error message to user
+            this.showErrorMessage('Failed to load cards. Please refresh the page.');
+        }
+    }
+    
+    // Show error message to user
+    showErrorMessage(message) {
+        const container = this.cardsContainer;
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <p style="font-size: 16px; margin-bottom: 12px;">⚠️ ${message}</p>
+            </div>
+        `;
+    }
+    
+    // Load cards data from JSON
+    async loadCardsData() {
+        try {
+            const response = await fetch('cards-data.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            this.cardsData = data.cards;
+        } catch (error) {
+            console.error('Error loading cards data:', error);
+            this.cardsData = [];
+            throw error;
+        }
+    }
+    
+    // Render cards dynamically from JSON data
+    renderCards() {
+        this.cardsContainer.innerHTML = '';
+        
+        this.cardsData.forEach((cardData, index) => {
+            const cardWrapper = this.createCardElement(cardData, index);
+            this.cardsContainer.appendChild(cardWrapper);
+        });
+        
+        // Update cards reference after rendering
+        this.cards = document.querySelectorAll('.card-wrapper');
+    }
+    
+    // Create a card element from data
+    createCardElement(cardData, index) {
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'card-wrapper';
+        cardWrapper.setAttribute('data-card', String(cardData.id));
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        // Apply background based on type with validation
+        if (cardData.background.type === 'color') {
+            // Sanitize CSS gradient value
+            const bgValue = this.sanitizeCSSValue(cardData.background.value);
+            card.style.background = bgValue;
+        } else if (cardData.background.type === 'image') {
+            // Sanitize image URL
+            const imageUrl = this.sanitizeURL(cardData.background.value);
+            card.style.backgroundImage = `url(${imageUrl})`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+        }
+        
+        // Create card elements using DOM methods for security
+        card.appendChild(this.createChipSVG());
+        card.appendChild(this.createNFCSVG());
+        
+        // Create bank name element
+        const bankEl = document.createElement('div');
+        bankEl.className = 'card-bank';
+        bankEl.textContent = cardData.bank; // Use textContent for security
+        card.appendChild(bankEl);
+        
+        // Create card number element
+        const numberEl = document.createElement('div');
+        numberEl.className = 'card-number';
+        numberEl.textContent = cardData.cardNumber;
+        card.appendChild(numberEl);
+        
+        // Create card holder section
+        const holderSection = document.createElement('div');
+        holderSection.className = 'card-holder';
+        
+        const holderLabel = document.createElement('div');
+        holderLabel.className = 'card-label';
+        holderLabel.textContent = 'Card Holder';
+        holderSection.appendChild(holderLabel);
+        
+        const holderName = document.createElement('div');
+        holderName.className = 'card-name';
+        holderName.textContent = cardData.holderName;
+        holderSection.appendChild(holderName);
+        
+        card.appendChild(holderSection);
+        
+        // Create expiry section
+        const expirySection = document.createElement('div');
+        expirySection.className = 'card-expiry';
+        
+        const expiryLabel = document.createElement('div');
+        expiryLabel.className = 'card-label';
+        expiryLabel.textContent = 'Expires';
+        expirySection.appendChild(expiryLabel);
+        
+        const expiryDate = document.createElement('div');
+        expiryDate.className = 'card-date';
+        expiryDate.textContent = cardData.expiryDate;
+        expirySection.appendChild(expiryDate);
+        
+        card.appendChild(expirySection);
+        
+        // Create logo element
+        const logoContainer = document.createElement('div');
+        logoContainer.className = 'card-logo';
+        logoContainer.innerHTML = this.getProtocolLogo(cardData.protocol);
+        card.appendChild(logoContainer);
+        
+        cardWrapper.appendChild(card);
+        return cardWrapper;
+    }
+    
+    // Sanitize CSS value to prevent injection
+    sanitizeCSSValue(value) {
+        // More restrictive validation for CSS values
+        // Allow linear-gradient, radial-gradient, and simple color formats
+        const hexPattern = /^#[0-9A-Fa-f]{3,8}$/;
+        const rgbaPattern = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+        const hslaPattern = /^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+        const gradientPattern = /^(linear|radial)-gradient\(.*\)$/;
+        
+        // Validate the value
+        if (hexPattern.test(value) || rgbaPattern.test(value) || hslaPattern.test(value)) {
+            return value;
+        }
+        
+        // For gradients, ensure they don't contain dangerous patterns
+        if (gradientPattern.test(value) && !value.includes('javascript:') && !value.includes('data:') && !value.includes('url(')) {
+            return value;
+        }
+        
+        // Return default gradient if validation fails
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }
+    
+    // Sanitize URL to prevent XSS
+    sanitizeURL(url) {
+        // Only allow relative paths and safe image file extensions
+        // Explicitly reject data: URIs as they can contain malicious code
+        const safeFilePattern = /^[a-zA-Z0-9._/-]+\.(svg|png|jpg|jpeg|webp|gif)$/i;
+        const relativePattern = /^\.?\/[a-zA-Z0-9._/-]+\.(svg|png|jpg|jpeg|webp|gif)$/i;
+        
+        if (safeFilePattern.test(url) || relativePattern.test(url)) {
+            // Additional check: ensure no dangerous patterns
+            if (!url.includes('javascript:') && !url.includes('data:') && !url.includes('<')) {
+                return url;
+            }
+        }
+        
+        // Return empty string if validation fails
+        return '';
+    }
+    
+    // Create chip SVG element
+    createChipSVG() {
+        const chipDiv = document.createElement('div');
+        chipDiv.className = 'card-chip';
+        chipDiv.innerHTML = `
+            <svg width="40" height="32" viewBox="0 0 40 32">
+                <rect width="40" height="32" rx="4" fill="#D4AF37"/>
+                <rect x="8" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="16" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="24" y="8" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="8" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
+                <rect x="24" y="16" width="8" height="8" rx="1" fill="#B8941F"/>
+            </svg>
+        `;
+        return chipDiv;
+    }
+    
+    // Create NFC SVG element
+    createNFCSVG() {
+        const nfcDiv = document.createElement('div');
+        nfcDiv.className = 'card-nfc';
+        nfcDiv.innerHTML = `
+            <svg width="32" height="24" viewBox="0 0 32 24">
+                <path d="M4 4C4 4 8 8 8 12C8 16 4 20 4 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+                <path d="M10 6C10 6 14 9 14 12C14 15 10 18 10 18" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+                <path d="M16 8C16 8 19 10 19 12C19 14 16 16 16 16" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+            </svg>
+        `;
+        return nfcDiv;
+    }
+    
+    // Get logo SVG based on card protocol
+    getProtocolLogo(protocol) {
+        // Sanitize protocol value - only allow known protocols
+        const validProtocols = ['American Express', 'Mastercard', 'Visa'];
+        const safeProtocol = validProtocols.includes(protocol) ? protocol : 'Mastercard';
+        
+        if (safeProtocol === 'American Express') {
+            return `
+                <svg width="60" height="40" viewBox="0 0 60 40">
+                    <rect x="2" y="8" width="56" height="24" rx="2" fill="none" stroke="white" stroke-width="2"/>
+                    <text x="30" y="26" text-anchor="middle" fill="white" font-size="12" font-weight="bold">AMEX</text>
+                </svg>
+            `;
+        } else {
+            // Default Mastercard/Visa logo
+            return `
+                <svg width="60" height="40" viewBox="0 0 60 40">
+                    <circle cx="20" cy="20" r="16" fill="rgba(255,255,255,0.8)"/>
+                    <circle cx="40" cy="20" r="16" fill="rgba(255,255,255,0.6)"/>
+                </svg>
+            `;
+        }
     }
     
     // Setup individual card events

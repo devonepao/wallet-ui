@@ -1,0 +1,82 @@
+{
+  "cards": [
+    {
+      "id": 1,
+      "name": "Chase Sapphire Preferred",
+      "bank": "CHASE",
+      "cardNumber": "•••• •••• •••• 4829",
+      "holderName": "JOHN ANDERSON",
+      "expiryDate": "12/27",
+      "protocol": "Mastercard",
+      "background": {
+        "type": "color",
+        "value": "linear-gradient(135deg, #0066CC 0%, #0052A3 100%)"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Bank of America Cash Rewards",
+      "bank": "BANK OF AMERICA",
+      "cardNumber": "•••• •••• •••• 7321",
+      "holderName": "SARAH MARTINEZ",
+      "expiryDate": "08/26",
+      "protocol": "Mastercard",
+      "background": {
+        "type": "color",
+        "value": "linear-gradient(135deg, #E31E24 0%, #B71C1C 100%)"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Citibank Double Cash",
+      "bank": "CITIBANK",
+      "cardNumber": "•••• •••• •••• 9156",
+      "holderName": "MICHAEL CHEN",
+      "expiryDate": "03/28",
+      "protocol": "Mastercard",
+      "background": {
+        "type": "image",
+        "value": "card-bg.svg"
+      }
+    },
+    {
+      "id": 4,
+      "name": "Wells Fargo Propel",
+      "bank": "WELLS FARGO",
+      "cardNumber": "•••• •••• •••• 2847",
+      "holderName": "EMILY JOHNSON",
+      "expiryDate": "11/25",
+      "protocol": "Mastercard",
+      "background": {
+        "type": "color",
+        "value": "linear-gradient(135deg, #D4A574 0%, #B8860B 100%)"
+      }
+    },
+    {
+      "id": 5,
+      "name": "American Express Platinum",
+      "bank": "AMERICAN EXPRESS",
+      "cardNumber": "•••• •••••• •5009",
+      "holderName": "DAVID WILLIAMS",
+      "expiryDate": "05/29",
+      "protocol": "American Express",
+      "background": {
+        "type": "color",
+        "value": "linear-gradient(135deg, #1A1A1A 0%, #0A0A0A 100%)"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Capital One Venture",
+      "bank": "CAPITAL ONE",
+      "cardNumber": "•••• •••• •••• 6734",
+      "holderName": "JENNIFER DAVIS",
+      "expiryDate": "09/27",
+      "protocol": "Mastercard",
+      "background": {
+        "type": "color",
+        "value": "linear-gradient(135deg, #AFAFAF 0%, #757575 100%)"
+      }
+    }
+  ]
+}
